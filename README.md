@@ -14,7 +14,7 @@ de la provincia de Mendoza, Argentina.
 - **Equipo**: presidencia, dirección técnica, asesoría/auditoría y supervisión.
 - **Cómo trabajamos**: relevamiento, propuesta, implementación y auditoría.
 - **Contacto**: formulario que llega por correo y queda guardado en el
-  servidor, con WhatsApp y correo directos como alternativa.
+  servidor; WhatsApp y correo directos como alternativa, a un clic.
 
 ## Estructura del sitio
 
@@ -107,8 +107,13 @@ Cuando alguien completa el formulario del sitio, el servicio `api`:
    correo del interesado: responder desde Gmail le contesta directo a él.
 
 Si el correo falla, la consulta igual queda guardada y el visitante ve el
-mensaje de éxito. Si la api no responde, el sitio abre WhatsApp con el mensaje
-ya armado para que el contacto no se pierda.
+mensaje de éxito. Si la api no responde, se le avisa en pantalla y se lo invita
+a escribir por WhatsApp.
+
+El formulario nunca abre WhatsApp por su cuenta. WhatsApp se abre solo al hacer
+clic en el botón flotante o en los enlaces de la página; si en ese momento el
+formulario ya tiene nombre y teléfono cargados, el chat se abre con la consulta
+escrita, y si está vacío, con el saludo de siempre.
 
 ### Configurar el correo
 

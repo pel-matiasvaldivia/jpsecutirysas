@@ -75,13 +75,33 @@
       (d.mensaje ? 'Detalle: ' + d.mensaje : '');
   }
 
-  function abrirWhatsApp(d) {
-    window.open(
-      'https://wa.me/' + WHATSAPP + '?text=' + encodeURIComponent(armarTexto(d)),
-      '_blank',
-      'noopener'
-    );
+  /* Los enlaces de WhatsApp llevan la consulta ya escrita si la persona
+     completó el formulario; si no, el saludo de siempre. Solo se abren
+     cuando se hace clic. */
+  function enlaceWhatsApp() {
+    var texto = 'Hola JP Security SAS, quisiera solicitar un presupuesto.';
+
+    if (form && form.nombre.value.trim() && form.telefono.value.trim()) {
+      texto = armarTexto({
+        nombre: form.nombre.value.trim(),
+        telefono: form.telefono.value.trim(),
+        email: form.email.value.trim(),
+        servicio: form.servicio.value,
+        mensaje: form.mensaje.value.trim()
+      });
+    }
+
+    return 'https://wa.me/' + WHATSAPP + '?text=' + encodeURIComponent(texto);
   }
+
+  Array.prototype.forEach.call(
+    document.querySelectorAll('a[href*="wa.me"]'),
+    function (enlace) {
+      enlace.addEventListener('click', function () {
+        enlace.href = enlaceWhatsApp();
+      });
+    }
+  );
 
   if (form) {
     form.addEventListener('submit', function (e) {
@@ -142,14 +162,13 @@
           }
           // El servidor rechazó la consulta y explicó por qué
           mostrar(errorBox, r.cuerpo.error ||
-            'No pudimos enviar la consulta. Le abrimos WhatsApp para que no pierda el mensaje.');
-          if (!r.cuerpo.error) abrirWhatsApp(datos);
+            'No pudimos enviar la consulta. Volvé a intentar o escribinos por WhatsApp.');
         })
         .catch(function () {
-          // Sin conexión con el servidor: que el contacto no se pierda
+          mostrar(errorBox,
+            'No pudimos conectar con el servidor. Volvé a intentar en unos minutos ' +
+            'o escribinos por WhatsApp.');
           restaurar();
-          mostrar(errorBox, 'No pudimos conectar con el servidor. Le abrimos WhatsApp para enviar la consulta.');
-          abrirWhatsApp(datos);
         });
     });
   }
