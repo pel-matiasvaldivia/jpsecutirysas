@@ -1,0 +1,24 @@
+# Stack de producción: usa la imagen ya publicada en GitHub Container Registry
+# (la construye el workflow .github/workflows/docker-publish.yml).
+#
+#   docker compose -f docker-compose.prod.yml pull
+#   docker compose -f docker-compose.prod.yml up -d
+services:
+  web:
+    image: ${IMAGE:-ghcr.io/pel-matiasvaldivia/jpsecutirysas:latest}
+    container_name: jpsecurity-web
+    restart: always
+    pull_policy: always
+    ports:
+      - "${HTTP_PORT:-80}:80"
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1/healthz"]
+      interval: 30s
+      timeout: 3s
+      retries: 3
+      start_period: 5s
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"

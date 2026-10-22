@@ -1,0 +1,12 @@
+.git
+.github
+.gitignore
+node_modules
+npm-debug.log
+*.log
+README.md
+docker-compose*.yml
+Dockerfile
+.dockerignore
+.DS_Store
+Thumbs.db
