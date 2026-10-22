@@ -1,4 +1,4 @@
-name: Build and deploy
+name: Build and publish container
 
 on:
   push:
@@ -12,18 +12,12 @@ env:
   IMAGE_NAME: ${{ github.repository }}
 
 jobs:
-  # ---------------------------------------------------------------------------
-  # 1. Construye la imagen, la prueba levantándola y la publica en GHCR
-  # ---------------------------------------------------------------------------
   build:
     name: Build, test and push
     runs-on: ubuntu-latest
     permissions:
       contents: read
       packages: write
-    outputs:
-      digest: ${{ steps.push.outputs.digest }}
-      deploy: ${{ steps.vps.outputs.configured }}
 
     steps:
       - name: Checkout
@@ -114,21 +108,6 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
-      # El contexto `secrets` no se puede usar en el `if` de un job,
-      # así que publicamos la decisión como output.
-      - name: ¿Hay VPS configurado?
-        id: vps
-        if: github.event_name != 'pull_request'
-        env:
-          VPS_HOST: ${{ secrets.VPS_HOST }}
-        run: |
-          if [ -n "$VPS_HOST" ]; then
-            echo "configured=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "configured=false" >> "$GITHUB_OUTPUT"
-            echo "::notice::No hay secret VPS_HOST cargado; se omite el deploy."
-          fi
-
       - name: Summary
         if: github.event_name != 'pull_request'
         run: |
@@ -139,117 +118,4 @@ jobs:
             echo "${{ steps.meta.outputs.tags }}"
             echo "digest: ${{ steps.push.outputs.digest }}"
             echo '```'
-          } >> "$GITHUB_STEP_SUMMARY"
-
-  # ---------------------------------------------------------------------------
-  # 2. Levanta el stack en el VPS con la imagen recién publicada
-  # ---------------------------------------------------------------------------
-  deploy:
-    name: Deploy al VPS
-    needs: build
-    if: |
-      needs.build.outputs.deploy == 'true' &&
-      (github.ref_name == github.event.repository.default_branch ||
-       startsWith(github.ref, 'refs/tags/v') ||
-       github.event_name == 'workflow_dispatch')
-    runs-on: ubuntu-latest
-    environment: production
-
-    env:
-      # Se despliega por digest: el VPS corre exactamente lo que se testeó acá.
-      IMAGE: ${{ needs.build.outputs.digest != '' && format('ghcr.io/{0}@{1}', github.repository, needs.build.outputs.digest) || format('ghcr.io/{0}:latest', github.repository) }}
-      REMOTE_DIR: ${{ vars.VPS_PATH || '/opt/jpsecurity' }}
-      HTTP_PORT: ${{ vars.HTTP_PORT || '80' }}
-      SSH_PORT: ${{ vars.VPS_SSH_PORT || '22' }}
-
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Preparar clave SSH
-        env:
-          SSH_KEY: ${{ secrets.VPS_SSH_KEY }}
-          KNOWN_HOSTS: ${{ secrets.VPS_KNOWN_HOSTS }}
-          VPS_HOST: ${{ secrets.VPS_HOST }}
-        run: |
-          set -euo pipefail
-          mkdir -p ~/.ssh && chmod 700 ~/.ssh
-          printf '%s\n' "$SSH_KEY" > ~/.ssh/id_deploy
-          chmod 600 ~/.ssh/id_deploy
-
-          if [ -n "$KNOWN_HOSTS" ]; then
-            printf '%s\n' "$KNOWN_HOSTS" > ~/.ssh/known_hosts
-          else
-            echo "::warning::Sin secret VPS_KNOWN_HOSTS: se confía en la clave que presente el servidor."
-            ssh-keyscan -p "$SSH_PORT" -H "$VPS_HOST" >> ~/.ssh/known_hosts 2>/dev/null
-          fi
-          chmod 600 ~/.ssh/known_hosts
-
-      - name: Copiar el compose al servidor
-        env:
-          VPS_HOST: ${{ secrets.VPS_HOST }}
-          VPS_USER: ${{ secrets.VPS_USER }}
-        run: |
-          set -euo pipefail
-          ssh -i ~/.ssh/id_deploy -p "$SSH_PORT" "$VPS_USER@$VPS_HOST" \
-            "mkdir -p '$REMOTE_DIR'"
-          scp -i ~/.ssh/id_deploy -P "$SSH_PORT" docker-compose.prod.yml \
-            "$VPS_USER@$VPS_HOST:$REMOTE_DIR/docker-compose.yml"
-
-      - name: Levantar el stack
-        env:
-          VPS_HOST: ${{ secrets.VPS_HOST }}
-          VPS_USER: ${{ secrets.VPS_USER }}
-        run: |
-          set -euo pipefail
-          ssh -i ~/.ssh/id_deploy -p "$SSH_PORT" "$VPS_USER@$VPS_HOST" \
-            IMAGE="$IMAGE" HTTP_PORT="$HTTP_PORT" REMOTE_DIR="$REMOTE_DIR" 'bash -se' <<'REMOTE'
-          set -euo pipefail
-          cd "$REMOTE_DIR"
-
-          # .env para que un `docker compose up -d` manual use la misma imagen
-          printf 'IMAGE=%s\nHTTP_PORT=%s\n' "$IMAGE" "$HTTP_PORT" > .env
-
-          docker compose pull
-          docker compose up -d --remove-orphans
-
-          # Esperar a que el healthcheck dé verde
-          estado=starting
-          for i in $(seq 1 30); do
-            estado=$(docker inspect -f '{{.State.Health.Status}}' jpsecurity-web 2>/dev/null || echo starting)
-            [ "$estado" = "healthy" ] && break
-            sleep 2
-          done
-
-          if [ "$estado" != "healthy" ]; then
-            echo "El contenedor no quedó saludable (estado: $estado)"
-            docker compose logs --tail 50
-            exit 1
-          fi
-
-          # Verificación extra desde el propio servidor, si hay con qué
-          if command -v curl > /dev/null 2>&1; then
-            curl -fsS "http://127.0.0.1:${HTTP_PORT}/healthz" > /dev/null
-            curl -fsS "http://127.0.0.1:${HTTP_PORT}/" | grep -q "JP SECURITY SAS"
-          elif command -v wget > /dev/null 2>&1; then
-            wget -qO- "http://127.0.0.1:${HTTP_PORT}/healthz" > /dev/null
-            wget -qO- "http://127.0.0.1:${HTTP_PORT}/" | grep -q "JP SECURITY SAS"
-          else
-            echo "Aviso: no hay curl ni wget en el VPS; queda el healthcheck del contenedor."
-          fi
-
-          # Limpia solo imágenes viejas de este proyecto, no las de otros stacks
-          docker image prune -f --filter "label=org.opencontainers.image.title=JP Security SAS" || true
-
-          echo "Deploy OK: $IMAGE"
-          REMOTE
-
-      - name: Summary
-        run: |
-          {
-            echo "### Deploy al VPS"
-            echo ""
-            echo "- Imagen: \`$IMAGE\`"
-            echo "- Directorio: \`$REMOTE_DIR\`"
-            echo "- Puerto: \`$HTTP_PORT\`"
           } >> "$GITHUB_STEP_SUMMARY"

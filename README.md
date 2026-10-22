@@ -16,7 +16,7 @@ de la provincia de Mendoza, Argentina.
 - **Contacto**: formulario que arma el mensaje y lo envía por WhatsApp, más
   teléfono y correo directos.
 
-## Estructura
+## Estructura del sitio
 
 ```
 index.html      Página completa
@@ -33,50 +33,70 @@ Sitio estático, sin dependencias ni proceso de build.
 Dockerfile                  Imagen nginx con el sitio
 docker/nginx.conf           gzip, cacheo, /healthz y try_files
 docker/security-headers.conf Cabeceras de seguridad (incluidas en cada location)
-docker-compose.yml          Desarrollo: construye desde el código local
-docker-compose.prod.yml     Producción: usa la imagen publicada en GHCR
-.github/workflows/          Build, publicación de la imagen y deploy al VPS
+docker-compose.yml          Stack: levanta la imagen publicada en GHCR
+.github/workflows/          Build y publicación de la imagen
 ```
 
-## Ver en local
+## Levantar el stack
 
-Sin Docker:
+El `docker-compose.yml` no construye nada: baja la imagen que publicó GitHub
+Actions en el registry del repositorio.
+
+```bash
+docker compose pull
+docker compose up -d          # http://localhost
+docker compose logs -f
+docker compose down
+```
+
+Variables opcionales, por línea de comandos o en un archivo `.env` al lado del
+compose:
+
+| Variable | Default | Para qué |
+|---|---|---|
+| `IMAGE` | `ghcr.io/pel-matiasvaldivia/jpsecutirysas:latest` | Qué versión correr |
+| `HTTP_PORT` | `80` | Puerto publicado en el host |
+
+```bash
+# Otro puerto
+HTTP_PORT=8080 docker compose up -d
+
+# Fijar una versión concreta en lugar de latest
+IMAGE=ghcr.io/pel-matiasvaldivia/jpsecutirysas:sha-abc1234 docker compose up -d
+```
+
+Para que `docker compose pull` funcione sin credenciales, el paquete tiene que
+ser público: pestaña **Packages** del repositorio → el paquete →
+*Package settings* → *Change visibility* → **Public**. Si queda privado, hay
+que hacer `docker login ghcr.io -u <usuario>` antes del pull.
+
+## Trabajar sobre el sitio localmente
+
+Sin Docker, que es lo más rápido para editar:
 
 ```bash
 python3 -m http.server 8000      # http://localhost:8000
 ```
 
-Con Docker:
+Y para probar la imagen con los cambios sin esperar al CI:
 
 ```bash
-docker compose up -d --build     # http://localhost:8080
-docker compose logs -f web
-docker compose down
+docker build -t jpsecurity:dev .
+docker run --rm -p 8080:80 jpsecurity:dev
 ```
 
-El puerto se puede cambiar con `HTTP_PORT`:
+## Publicación de la imagen (GitHub Actions)
 
-```bash
-HTTP_PORT=3000 docker compose up -d --build
-```
-
-## Despliegue con GitHub Actions
-
-`.github/workflows/docker-publish.yml` hace todo en un solo push:
+`.github/workflows/docker-publish.yml` corre en cada push:
 
 1. **Construye** la imagen.
 2. **La prueba**: la levanta y verifica healthcheck, home, CSS, JS, logo y
-   cabeceras de seguridad. Si algo falla, no publica ni despliega.
-3. **Publica** en `ghcr.io/pel-matiasvaldivia/jpsecutirysas`
-   (`linux/amd64` y `linux/arm64`).
-4. **Despliega en el VPS** por SSH: copia `docker-compose.prod.yml`, hace
-   `docker compose pull` + `up -d` y espera a que el contenedor quede sano.
+   cabeceras de seguridad. Si algo falla, no publica.
+3. **Publica** en `ghcr.io/pel-matiasvaldivia/jpsecutirysas` para
+   `linux/amd64` y `linux/arm64`.
 
-En pull requests sólo construye y testea. El deploy corre en la rama por
-defecto, en tags `v*` y a mano desde *Actions → Run workflow*.
-
-El deploy usa el **digest** de la imagen, no `latest`: el VPS corre exactamente
-el binario que pasó el smoke test, sin ambigüedad.
+En pull requests sólo construye y testea, no publica. No hace deploy a ningún
+servidor: el despliegue se hace a mano con el `docker-compose.yml`.
 
 ### Etiquetas de la imagen
 
@@ -87,75 +107,9 @@ el binario que pasó el smoke test, sin ambigüedad.
 | Tag `v1.2.3` | `1.2.3`, `1.2` |
 | Cualquier push | `sha-<commit>` |
 
-### Preparar el VPS (una sola vez)
-
-1. Instalar Docker con el plugin de Compose v2:
-
-   ```bash
-   curl -fsSL https://get.docker.com | sh
-   docker compose version
-   ```
-
-2. Crear un usuario de deploy y su clave SSH (desde tu máquina):
-
-   ```bash
-   ssh-keygen -t ed25519 -f ~/.ssh/jpsecurity_deploy -C "github-actions"
-   ssh-copy-id -i ~/.ssh/jpsecurity_deploy.pub usuario@IP_DEL_VPS
-   ```
-
-   El usuario tiene que poder correr `docker` (estar en el grupo `docker`).
-
-3. Abrir el puerto 80 en el firewall:
-
-   ```bash
-   sudo ufw allow 80/tcp
-   ```
-
-4. Hacer **público** el paquete en GHCR, así el VPS puede descargarlo sin
-   credenciales: pestaña **Packages** del repositorio → el paquete →
-   *Package settings* → *Change visibility* → **Public**.
-
-### Secrets y variables del repositorio
-
-En *Settings → Secrets and variables → Actions*:
-
-**Secrets** (obligatorios para que corra el deploy):
-
-| Secret | Valor |
-|---|---|
-| `VPS_HOST` | IP o dominio del VPS |
-| `VPS_USER` | Usuario SSH de deploy |
-| `VPS_SSH_KEY` | Contenido de la clave **privada** (`~/.ssh/jpsecurity_deploy`, completa, incluidas las líneas `BEGIN`/`END`) |
-| `VPS_KNOWN_HOSTS` | Opcional pero recomendado: salida de `ssh-keyscan IP_DEL_VPS`. Sin esto, el workflow confía en la clave que presente el servidor en cada corrida |
-
-Si `VPS_HOST` no está cargado, el workflow construye y publica la imagen y
-saltea el deploy sin fallar.
-
-**Variables** (opcionales, con valor por defecto):
-
-| Variable | Default | Para qué |
-|---|---|---|
-| `VPS_PATH` | `/opt/jpsecurity` | Dónde vive el stack en el servidor |
-| `HTTP_PORT` | `80` | Puerto publicado en el VPS |
-| `VPS_SSH_PORT` | `22` | Puerto SSH |
-
-### Operar el stack a mano en el VPS
-
-El workflow deja el `docker-compose.yml` y un `.env` con la imagen desplegada,
-así que en el servidor funciona todo lo habitual:
-
-```bash
-cd /opt/jpsecurity
-docker compose ps
-docker compose logs -f
-docker compose restart
-```
-
-Para volver a una versión anterior:
-
-```bash
-IMAGE=ghcr.io/pel-matiasvaldivia/jpsecutirysas:sha-abc1234 docker compose up -d
-```
+El resumen de cada corrida (*Actions* → la corrida → *Summary*) muestra las
+etiquetas publicadas y el digest, útil para fijar una versión exacta en el
+servidor.
 
 ## Datos a revisar antes de publicar
 

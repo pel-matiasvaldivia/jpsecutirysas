@@ -1,15 +1,20 @@
-# Stack de desarrollo: construye la imagen desde el código local.
-#   docker compose up -d --build   →  http://localhost:8080
+# Stack de JP Security SAS.
+# Toma la imagen publicada por GitHub Actions en el registry del repositorio
+# (GitHub Container Registry), no la construye localmente.
+#
+#   docker compose pull
+#   docker compose up -d
+#
+# Variables (opcionales, se pueden poner en un archivo .env al lado):
+#   IMAGE      imagen completa a correr. Por defecto, la última de la rama principal.
+#   HTTP_PORT  puerto publicado en el host. Por defecto 80.
 services:
   web:
-    build:
-      context: .
-      dockerfile: Dockerfile
-    image: ghcr.io/pel-matiasvaldivia/jpsecutirysas:local
+    image: ${IMAGE:-ghcr.io/pel-matiasvaldivia/jpsecutirysas:latest}
     container_name: jpsecurity-web
     restart: unless-stopped
     ports:
-      - "${HTTP_PORT:-8080}:80"
+      - "${HTTP_PORT:-80}:80"
     healthcheck:
       test: ["CMD", "wget", "-qO-", "http://127.0.0.1/healthz"]
       interval: 30s
