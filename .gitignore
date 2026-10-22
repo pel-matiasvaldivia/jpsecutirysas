@@ -4,3 +4,4 @@ node_modules/
 *.log
 _site/
 .env
+brochure/.brochure-generado.html

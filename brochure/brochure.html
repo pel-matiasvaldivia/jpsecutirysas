@@ -1,0 +1,467 @@
+<!DOCTYPE html>
+<html lang="es-AR">
+<head>
+<meta charset="utf-8">
+<title>JP Security SAS — Brochure institucional</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+/* ==========================================================
+   JP Security SAS — Brochure A4, 2 páginas
+   Misma paleta e identidad que el sitio.
+   ========================================================== */
+:root{
+  --navy-900:#070f20;
+  --navy-800:#0b1730;
+  --navy-700:#112141;
+  --steel-300:#9fb0c9;
+  --steel-200:#c6d2e2;
+  --paper:#f4f6fa;
+  --red:#c0202c;
+  --gold:#f0b429;
+  --text:#101a2d;
+  --text-soft:#4a5870;
+  --line:rgba(16,26,45,.14);
+  --h:'Barlow Condensed','Arial Narrow',sans-serif;
+  --b:'Inter',system-ui,sans-serif;
+}
+
+*,*::before,*::after{box-sizing:border-box;}
+html,body{margin:0;padding:0;}
+body{
+  font-family:var(--b);
+  color:var(--text);
+  font-size:9.6pt;
+  line-height:1.45;
+  -webkit-print-color-adjust:exact;
+  print-color-adjust:exact;
+}
+
+@page{ size:A4; margin:0; }
+
+.hoja{
+  display:flex;
+  flex-direction:column;
+  width:210mm;
+  height:297mm;
+  padding:0;
+  position:relative;
+  overflow:hidden;
+  background:#fff;
+  page-break-after:always;
+  break-after:page;
+}
+.hoja:last-child{ page-break-after:auto; break-after:auto; }
+
+.cuerpo{ padding:9mm 13mm; }
+
+/* Hoja 2: las secciones se reparten en el alto libre sobre el pie */
+/* Hoja 1: el aire sobrante queda al pie, no partiendo la página al medio */
+.cuerpo-1{ flex:1; padding-bottom:18mm; }
+.cuerpo-1 section + section{ margin-top:9mm; }
+
+.cuerpo-2{
+  height:calc(297mm - 50mm);
+  display:flex;
+  flex-direction:column;
+  justify-content:space-between;
+  padding-top:14mm;
+}
+.cuerpo-2 .titulo{ margin-top:0; }
+
+h1,h2,h3,h4{ font-family:var(--h); margin:0; line-height:1.06; }
+
+/* ---------- Encabezado de portada ---------- */
+.portada-top{
+  background:
+    radial-gradient(420px 260px at 82% 12%, rgba(45,78,138,.6), transparent 65%),
+    linear-gradient(160deg,var(--navy-800) 0%, var(--navy-900) 62%, #040a16 100%);
+  color:#fff;
+  padding:11mm 13mm 9mm;
+  display:flex;
+  gap:8mm;
+  align-items:center;
+}
+.portada-top img{ width:30mm; height:auto; flex:none;
+  filter:drop-shadow(0 4px 12px rgba(0,0,0,.55)); }
+.marca h1{ font-size:30pt; letter-spacing:.055em; text-transform:uppercase; }
+.marca .bajada{
+  font-size:7.6pt; letter-spacing:.3em; text-transform:uppercase;
+  color:var(--steel-300); margin-top:1.5mm;
+}
+.marca .linea{ width:28mm; height:2px; background:var(--red); margin:3mm 0; }
+.marca .claim{ font-family:var(--h); font-size:13.5pt; color:#fff; line-height:1.2; }
+.marca .lugar{ font-size:8pt; color:var(--steel-200); margin-top:2mm; }
+
+/* ---------- Franja de atributos ---------- */
+.franja{
+  background:var(--navy-700); color:#fff;
+  padding:3.5mm 13mm;
+  display:flex; justify-content:space-between; align-items:center;
+  font-family:var(--h); text-transform:uppercase;
+  letter-spacing:.16em; font-size:8.2pt;
+}
+.franja .dorado{ color:var(--gold); }
+
+/* ---------- Títulos de sección ---------- */
+.titulo{ display:flex; align-items:center; gap:3mm; margin:0 0 3.5mm; }
+.titulo::before{ content:""; width:7mm; height:2px; background:var(--red); flex:none; }
+.titulo h2{
+  font-size:14.5pt; text-transform:uppercase; letter-spacing:.04em; color:var(--navy-800);
+}
+
+/* ---------- Servicios ---------- */
+.servicios{ display:grid; grid-template-columns:1fr 1fr; gap:5mm; }
+.servicio{
+  border:1px solid var(--line); border-radius:3mm; padding:4.5mm 5mm;
+  border-top:3px solid var(--red);
+  background:#fff;
+}
+.servicio h3{
+  font-size:12pt; text-transform:uppercase; letter-spacing:.03em;
+  color:var(--navy-800); margin-bottom:1mm;
+}
+.servicio .sub{ font-size:8pt; color:var(--text-soft); margin-bottom:3mm; }
+.servicio ul{ list-style:none; margin:0; padding:0; }
+.servicio li{ position:relative; padding-left:4.5mm; margin-bottom:1.6mm; font-size:9pt; }
+.servicio li::before{
+  content:""; position:absolute; left:0; top:1.1mm;
+  width:2.4mm; height:1.3mm; border-left:1.6px solid var(--red);
+  border-bottom:1.6px solid var(--red); transform:rotate(-45deg);
+}
+
+.apoyo{ margin-top:4mm; display:flex; flex-wrap:wrap; gap:1.8mm; }
+.apoyo span{
+  background:var(--paper); border:1px solid var(--line); border-radius:9mm;
+  padding:1.2mm 3.2mm; font-size:7.8pt; color:#2a3752;
+}
+
+/* ---------- Diferenciales ---------- */
+.valores{ display:grid; grid-template-columns:repeat(3,1fr); gap:3.5mm; }
+.valor{
+  background:var(--paper); border-left:2.5px solid var(--red);
+  border-radius:2mm; padding:3mm 3.5mm;
+}
+.valor h4{ font-size:9.6pt; text-transform:uppercase; letter-spacing:.02em; margin-bottom:1mm; }
+.valor p{ margin:0; font-size:8.1pt; color:var(--text-soft); line-height:1.35; }
+
+/* ---------- Objetivos ---------- */
+.objetivos{ display:grid; grid-template-columns:repeat(3,1fr); gap:4mm; }
+.objetivo{
+  background:var(--navy-800); color:#fff; border-radius:3mm; padding:5mm 5mm;
+  -webkit-print-color-adjust:exact; print-color-adjust:exact;
+}
+.objetivo .activo{
+  font-size:6.8pt; letter-spacing:.18em; text-transform:uppercase;
+  color:#9ff5b9; display:block; margin-bottom:1.5mm;
+}
+.objetivo h3{ font-size:12pt; text-transform:uppercase; margin-bottom:1.2mm; }
+.objetivo p{ margin:0; font-size:8.1pt; color:var(--steel-300); line-height:1.35; }
+
+/* ---------- Equipo ---------- */
+.equipo{ display:grid; grid-template-columns:repeat(3,1fr); gap:3.5mm; margin-bottom:3.5mm; }
+.persona{
+  border:1px solid var(--line); border-radius:2.5mm; padding:4.2mm 3.2mm;
+  text-align:center;
+}
+.persona .inicial{
+  width:10mm; height:10mm; border-radius:50%; background:var(--navy-800); color:#fff;
+  font-family:var(--h); font-size:11pt; line-height:10mm; margin:0 auto 2mm;
+}
+.persona h4{ font-size:9.8pt; text-transform:uppercase; margin-bottom:.6mm; }
+.persona .cargo{
+  font-size:7.4pt; letter-spacing:.13em; text-transform:uppercase;
+  color:var(--red); font-weight:600;
+}
+.persona .nota{ font-size:7.6pt; color:var(--text-soft); margin-top:.8mm; }
+
+.supervisores{
+  background:var(--paper); border-radius:2.5mm; padding:4mm 4.5mm;
+  display:flex; align-items:center; gap:4mm; flex-wrap:wrap;
+}
+.supervisores .rotulo{
+  font-family:var(--h); font-size:8.6pt; letter-spacing:.16em;
+  text-transform:uppercase; color:var(--text-soft);
+}
+.supervisores .nombres{ font-size:9.2pt; font-weight:600; color:var(--navy-800); }
+
+/* ---------- Proceso ---------- */
+.pasos{ display:grid; grid-template-columns:repeat(4,1fr); gap:3.5mm; }
+.paso{ border-top:2.5px solid var(--line); padding-top:2.5mm; }
+.paso:first-child{ border-top-color:var(--red); }
+.paso .num{ font-family:var(--h); font-size:16pt; color:#c7cedb; line-height:1; }
+.paso h4{ font-size:9.4pt; text-transform:uppercase; margin:.8mm 0 .8mm; }
+.paso p{ margin:0; font-size:7.9pt; color:var(--text-soft); line-height:1.35; }
+
+/* ---------- Contacto ---------- */
+.contacto{
+  position:absolute; left:0; right:0; bottom:0;
+  background-color:var(--navy-900);
+  background-image:
+    radial-gradient(360px 200px at 85% 20%, rgba(45,78,138,.55), transparent 65%),
+    linear-gradient(120deg, rgba(7,15,32,1), rgba(17,33,65,1) 60%, rgba(39,18,26,1));
+  color:#fff; padding:8mm 13mm 6.5mm;
+  -webkit-print-color-adjust:exact; print-color-adjust:exact;
+}
+.contacto h2{
+  font-size:15pt; text-transform:uppercase; letter-spacing:.03em; margin-bottom:1.5mm;
+}
+.contacto .intro{ font-size:8.6pt; color:var(--steel-200); margin:0 0 4mm; }
+.datos{ display:grid; grid-template-columns:repeat(4,1fr); gap:4mm; }
+.dato .rot{
+  font-size:6.9pt; letter-spacing:.17em; text-transform:uppercase;
+  color:var(--steel-300); display:block; margin-bottom:.8mm;
+}
+.dato .val{ font-size:10pt; font-weight:600; }
+.dato .val.chico{ font-size:8.6pt; font-weight:500; }
+.cierre{
+  margin-top:5mm; padding-top:3mm; border-top:1px solid rgba(255,255,255,.18);
+  display:flex; justify-content:space-between; align-items:center;
+  font-family:var(--h); text-transform:uppercase; letter-spacing:.14em; font-size:8.4pt;
+}
+.cierre .dorado{ color:var(--gold); }
+
+/* ---------- Pie de la hoja 1 ---------- */
+.pie-hoja{
+  position:absolute; left:13mm; right:13mm; bottom:7mm;
+  display:flex; justify-content:space-between; align-items:center;
+  font-size:7.4pt; color:var(--text-soft);
+  border-top:1px solid var(--line); padding-top:2.5mm;
+}
+.pie-hoja strong{ color:var(--navy-800); font-family:var(--h); letter-spacing:.1em; }
+</style>
+</head>
+<body>
+
+<!-- ================== HOJA 1 ================== -->
+<section class="hoja">
+
+  <header class="portada-top">
+    <img src="../assets/logo.png" alt="Escudo de JP Security SAS">
+    <div class="marca">
+      <h1>JP Security SAS</h1>
+      <div class="bajada">Servicio de Seguridad</div>
+      <div class="linea"></div>
+      <div class="claim">Seguridad física y electrónica para quienes<br>no pueden permitirse improvisar.</div>
+      <div class="lugar">Provincia de Mendoza, Argentina · Desde 2024</div>
+    </div>
+  </header>
+
+  <div class="franja">
+    <span>Profesionalismo</span>
+    <span>Confianza</span>
+    <span>Compromiso</span>
+    <span class="dorado">Protegemos lo que más valoras</span>
+  </div>
+
+  <div class="cuerpo cuerpo-1">
+
+    <section>
+    <div class="titulo"><h2>Dos frentes de protección, un solo responsable</h2></div>
+    <p style="margin:-1.5mm 0 4mm;color:var(--text-soft);font-size:8.8pt;">
+      Integramos el factor humano y la tecnología en un mismo esquema de seguridad,
+      diseñado a medida de cada objetivo.
+    </p>
+
+    <div class="servicios">
+      <article class="servicio">
+        <h3>Seguridad Física</h3>
+        <div class="sub">Vigilancia y custodia con presencia real</div>
+        <ul>
+          <li>Vigilancia en countries, barrios privados y complejos habitacionales</li>
+          <li>Control de accesos peatonal y vehicular con registro de novedades</li>
+          <li>Rondas perimetrales periódicas y recorridas programadas</li>
+          <li>Seguridad en obras, industrias, comercios y depósitos</li>
+          <li>Cobertura de eventos y servicios transitorios</li>
+          <li>Atención y respuesta inmediata ante novedades</li>
+        </ul>
+      </article>
+
+      <article class="servicio">
+        <h3>Seguridad Electrónica</h3>
+        <div class="sub">Tecnología que amplía la vigilancia</div>
+        <ul>
+          <li>Instalación de cámaras CCTV y videovigilancia IP</li>
+          <li>Sistemas de alarmas con sensores y detección perimetral</li>
+          <li>Control de acceso electrónico: barreras, molinetes y credenciales</li>
+          <li>Monitoreo remoto y verificación de eventos</li>
+          <li>Cercos eléctricos e iluminación de seguridad</li>
+          <li>Mantenimiento preventivo y soporte técnico</li>
+        </ul>
+      </article>
+    </div>
+    </section>
+
+    <section>
+    <div class="titulo"><h2>Una empresa mendocina, con estructura y responsabilidad</h2></div>
+    <p style="margin:-1.5mm 0 4mm;color:var(--text-soft);font-size:8.8pt;">
+      No vendemos horas de vigilancia: asumimos la responsabilidad de que el objetivo
+      esté protegido. Cada servicio se organiza bajo una dirección técnica profesional,
+      con consignas escritas, supervisión en terreno y auditoría interna.
+    </p>
+
+    <div class="valores">
+      <div class="valor">
+        <h4>Dirección técnica profesional</h4>
+        <p>El servicio es diseñado y controlado por un Licenciado en Seguridad.</p>
+      </div>
+      <div class="valor">
+        <h4>Supervisión permanente</h4>
+        <p>Cuerpo de supervisores que verifica consignas, presencia y novedades.</p>
+      </div>
+      <div class="valor">
+        <h4>Auditoría interna</h4>
+        <p>Asesoría y auditoría propia para sostener el estándar en cada objetivo.</p>
+      </div>
+      <div class="valor">
+        <h4>Personal capacitado</h4>
+        <p>Selección, capacitación y presentación acordes al objetivo asignado.</p>
+      </div>
+      <div class="valor">
+        <h4>Cobertura 24 horas, 7 días</h4>
+        <p>Esquemas de cobertura continua y personal asignado según necesidad.</p>
+      </div>
+      <div class="valor">
+        <h4>Respuesta ante novedades</h4>
+        <p>Protocolos de atención, escalamiento y reporte inmediato al cliente.</p>
+      </div>
+    </div>
+    </section>
+
+  </div>
+
+  <div class="pie-hoja">
+    <span><strong>JP SECURITY SAS</strong> · Servicio de Seguridad</span>
+    <span>__CONTACT_PHONE_DISPLAY__ · __CONTACT_EMAIL__</span>
+  </div>
+</section>
+
+<!-- ================== HOJA 2 ================== -->
+<section class="hoja">
+  <div class="cuerpo cuerpo-2">
+
+    <section><div class="titulo"><h2>Objetivos en actividad</h2></div>
+    <p style="margin:-1.5mm 0 4mm;color:var(--text-soft);font-size:8.8pt;">
+      Servicios hoy operativos bajo cobertura de JP Security SAS en la provincia de Mendoza.
+    </p>
+
+    <div class="objetivos">
+      <article class="objetivo">
+        <span class="activo">● Activo</span>
+        <h3>Balbi</h3>
+        <p>Vigilancia y control de accesos con supervisión permanente.</p>
+      </article>
+      <article class="objetivo">
+        <span class="activo">● Activo</span>
+        <h3>Barrio AMPROS</h3>
+        <p>Seguridad en barrio privado: control de ingresos y rondas perimetrales.</p>
+      </article>
+      <article class="objetivo">
+        <span class="activo">● Activo</span>
+        <h3>Clínica San Andrés</h3>
+        <p>Seguridad en institución de salud, con atención al público y respuesta ante novedades.</p>
+      </article>
+    </div>
+    </section>
+
+    <section><div class="titulo"><h2>Quiénes responden por el servicio</h2></div>
+
+    <div class="equipo">
+      <article class="persona">
+        <div class="inicial">IV</div>
+        <h4>Ivana Soledad Ventrera</h4>
+        <div class="cargo">Presidente</div>
+      </article>
+      <article class="persona">
+        <div class="inicial">JB</div>
+        <h4>Juan Bustos</h4>
+        <div class="cargo">Director Técnico</div>
+        <div class="nota">Licenciado en Seguridad</div>
+      </article>
+      <article class="persona">
+        <div class="inicial">MZ</div>
+        <h4>Marcela Zárate</h4>
+        <div class="cargo">Asesora &amp; Auditora</div>
+      </article>
+    </div>
+
+    <div class="supervisores">
+      <span class="rotulo">Supervisión operativa</span>
+      <span class="nombres">Miguel Videla · Santiago González · Matías Nieto</span>
+    </div>
+
+    </section>
+
+    <section><div class="titulo"><h2>Del primer contacto al servicio en funcionamiento</h2></div>
+
+    <div class="pasos">
+      <div class="paso">
+        <div class="num">01</div>
+        <h4>Contacto y relevamiento</h4>
+        <p>Visitamos el objetivo, escuchamos la necesidad y evaluamos riesgos y accesos.</p>
+      </div>
+      <div class="paso">
+        <div class="num">02</div>
+        <h4>Propuesta y presupuesto</h4>
+        <p>Definimos cobertura, personal asignado y tecnología, con valores claros.</p>
+      </div>
+      <div class="paso">
+        <div class="num">03</div>
+        <h4>Implementación</h4>
+        <p>Designamos el personal, redactamos consignas y ponemos el servicio en marcha.</p>
+      </div>
+      <div class="paso">
+        <div class="num">04</div>
+        <h4>Supervisión y auditoría</h4>
+        <p>Controlamos en terreno, informamos novedades y ajustamos lo que haga falta.</p>
+      </div>
+    </div>
+
+    </section>
+
+    <section><div class="titulo"><h2>También acompañamos con</h2></div>
+    <div class="apoyo">
+      <span>Relevamiento y análisis de riesgo</span>
+      <span>Diseño de consignas y protocolos</span>
+      <span>Auditorías de servicio</span>
+      <span>Capacitación del personal</span>
+      <span>Informes y reportes de novedades</span>
+      <span>Supervisión permanente en terreno</span>
+    </div>
+    </section>
+
+  </div>
+
+  <footer class="contacto">
+    <h2>Nuestro compromiso es su tranquilidad</h2>
+    <p class="intro">Solicite una visita de relevamiento sin cargo en la provincia de Mendoza.</p>
+
+    <div class="datos">
+      <div class="dato">
+        <span class="rot">Teléfono / WhatsApp</span>
+        <span class="val">__CONTACT_PHONE_DISPLAY__</span>
+      </div>
+      <div class="dato">
+        <span class="rot">Correo</span>
+        <span class="val chico">__CONTACT_EMAIL__</span>
+      </div>
+      <div class="dato">
+        <span class="rot">Sitio web</span>
+        <span class="val chico">__CONTACT_WEB__</span>
+      </div>
+      <div class="dato">
+        <span class="rot">Atención</span>
+        <span class="val chico">24 horas · 7 días por semana</span>
+      </div>
+    </div>
+
+    <div class="cierre">
+      <span>JP Security SAS · Mendoza, Argentina</span>
+      <span class="dorado">Protegemos lo que más valoras</span>
+    </div>
+  </footer>
+</section>
+
+</body>
+</html>

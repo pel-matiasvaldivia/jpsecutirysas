@@ -36,6 +36,7 @@ docker/security-headers.conf Cabeceras de seguridad (incluidas en cada location)
 docker/40-configurar-sitio.sh Completa teléfono y sello de versión al arrancar
 api/server.py               Servicio de contacto (solo biblioteca estándar)
 api/Dockerfile              Imagen del servicio de contacto
+brochure/                   Brochure institucional en PDF y su fuente
 docker-compose.yml          Stack: sitio + api, con las imágenes de GHCR
 .env.example                Plantilla de configuración del correo
 .github/workflows/          Build, test de integración y publicación
@@ -96,6 +97,12 @@ docker build -t jpsecurity-web:dev .
 docker build -t jpsecurity-api:dev ./api
 IMAGE_WEB=jpsecurity-web:dev IMAGE_API=jpsecurity-api:dev HTTP_PORT=8080 docker compose up -d
 ```
+
+## Brochure en PDF
+
+`brochure/JP-Security-SAS-Brochure.pdf` es el folleto de dos hojas A4 para
+mandar por correo o WhatsApp, con el mismo contenido que la landing. Se genera
+desde `brochure/brochure.html`; ver `brochure/README.md`.
 
 ## Cambiar el teléfono de contacto
 
