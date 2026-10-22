@@ -13,15 +13,15 @@ de la provincia de Mendoza, Argentina.
 - **Objetivos en actividad**: Balbi, Barrio AMPROS, Clínica San Andrés.
 - **Equipo**: presidencia, dirección técnica, asesoría/auditoría y supervisión.
 - **Cómo trabajamos**: relevamiento, propuesta, implementación y auditoría.
-- **Contacto**: formulario que arma el mensaje y lo envía por WhatsApp, más
-  teléfono y correo directos.
+- **Contacto**: formulario que llega por correo y queda guardado en el
+  servidor, con WhatsApp y correo directos como alternativa.
 
 ## Estructura del sitio
 
 ```
 index.html      Página completa
 styles.css      Estilos (paleta institucional: azul noche, acero, rojo)
-script.js       Menú móvil, animaciones de aparición y formulario → WhatsApp
+script.js       Menú móvil, animaciones de aparición y envío del formulario
 assets/         Logo y favicons derivados del escudo institucional
 ```
 
@@ -31,18 +31,27 @@ Sitio estático, sin dependencias ni proceso de build.
 
 ```
 Dockerfile                  Imagen nginx con el sitio
-docker/nginx.conf           gzip, cacheo, /healthz y try_files
+docker/nginx.conf           gzip, cacheo, /healthz, proxy a /api/ y try_files
 docker/security-headers.conf Cabeceras de seguridad (incluidas en cada location)
-docker-compose.yml          Stack: levanta la imagen publicada en GHCR
-.github/workflows/          Build y publicación de la imagen
+api/server.py               Servicio de contacto (solo biblioteca estándar)
+api/Dockerfile              Imagen del servicio de contacto
+docker-compose.yml          Stack: sitio + api, con las imágenes de GHCR
+.env.example                Plantilla de configuración del correo
+.github/workflows/          Build, test de integración y publicación
 ```
 
 ## Levantar el stack
 
-El `docker-compose.yml` no construye nada: baja la imagen que publicó GitHub
-Actions en el registry del repositorio.
+El stack tiene dos servicios y no construye nada: baja las imágenes que publicó
+GitHub Actions en el registry del repositorio.
+
+| Servicio | Qué hace |
+|---|---|
+| `web` | nginx con el sitio. Publica el puerto 80 y pasa `/api/` a la api |
+| `api` | Recibe el formulario, lo guarda y lo manda por correo. No se expone al exterior |
 
 ```bash
+cp .env.example .env          # completar el correo (ver más abajo)
 docker compose pull
 docker compose up -d          # http://localhost
 docker compose logs -f
@@ -54,7 +63,8 @@ compose:
 
 | Variable | Default | Para qué |
 |---|---|---|
-| `IMAGE` | `ghcr.io/pel-matiasvaldivia/jpsecutirysas:latest` | Qué versión correr |
+| `IMAGE_WEB` | `ghcr.io/pel-matiasvaldivia/jpsecutirysas:latest` | Versión del sitio |
+| `IMAGE_API` | `ghcr.io/pel-matiasvaldivia/jpsecutirysas/api:latest` | Versión de la api |
 | `HTTP_PORT` | `80` | Puerto publicado en el host |
 
 ```bash
@@ -62,11 +72,11 @@ compose:
 HTTP_PORT=8080 docker compose up -d
 
 # Fijar una versión concreta en lugar de latest
-IMAGE=ghcr.io/pel-matiasvaldivia/jpsecutirysas:sha-abc1234 docker compose up -d
+IMAGE_WEB=ghcr.io/pel-matiasvaldivia/jpsecutirysas:sha-abc1234 docker compose up -d
 ```
 
-Para que `docker compose pull` funcione sin credenciales, el paquete tiene que
-ser público: pestaña **Packages** del repositorio → el paquete →
+Para que `docker compose pull` funcione sin credenciales, los dos paquetes
+tienen que ser públicos: pestaña **Packages** del repositorio → cada paquete →
 *Package settings* → *Change visibility* → **Public**. Si queda privado, hay
 que hacer `docker login ghcr.io -u <usuario>` antes del pull.
 
@@ -81,19 +91,87 @@ python3 -m http.server 8000      # http://localhost:8000
 Y para probar la imagen con los cambios sin esperar al CI:
 
 ```bash
-docker build -t jpsecurity:dev .
-docker run --rm -p 8080:80 jpsecurity:dev
+docker build -t jpsecurity-web:dev .
+docker build -t jpsecurity-api:dev ./api
+IMAGE_WEB=jpsecurity-web:dev IMAGE_API=jpsecurity-api:dev HTTP_PORT=8080 docker compose up -d
 ```
 
-## Publicación de la imagen (GitHub Actions)
+## Formulario de contacto
+
+Cuando alguien completa el formulario del sitio, el servicio `api`:
+
+1. Valida los datos y descarta los envíos de bots (campo trampa oculto y un
+   tope de consultas por IP).
+2. **Guarda la consulta** en `consultas.jsonl`, dentro del volumen `consultas`.
+3. **Envía un correo** a `MAIL_TO` con los datos, poniendo como `Reply-To` el
+   correo del interesado: responder desde Gmail le contesta directo a él.
+
+Si el correo falla, la consulta igual queda guardada y el visitante ve el
+mensaje de éxito. Si la api no responde, el sitio abre WhatsApp con el mensaje
+ya armado para que el contacto no se pierda.
+
+### Configurar el correo
+
+En el `.env`, al lado del `docker-compose.yml`:
+
+```ini
+MAIL_TO=Jpseguridadsas@gmail.com
+SMTP_HOST=smtp.gmail.com
+SMTP_PORT=587
+SMTP_SECURITY=starttls
+SMTP_USER=Jpseguridadsas@gmail.com
+SMTP_PASSWORD=la-contraseña-de-aplicación
+MAIL_FROM=Jpseguridadsas@gmail.com
+```
+
+Gmail no acepta la contraseña normal de la cuenta: hay que generar una
+**contraseña de aplicación** (requiere verificación en 2 pasos activa) en
+*myaccount.google.com → Seguridad → Contraseñas de aplicaciones*.
+
+Después de cambiar el `.env`:
+
+```bash
+docker compose up -d
+```
+
+Sin SMTP configurado el formulario sigue funcionando: guarda todo en disco y lo
+deja asentado en el log, pero no manda correo.
+
+### Ver y respaldar las consultas
+
+```bash
+# Las últimas consultas, legibles
+docker compose exec api cat /data/consultas.jsonl | tail -5
+
+# Copia de respaldo al host
+docker compose cp api:/data/consultas.jsonl ./consultas-backup.jsonl
+```
+
+El volumen `consultas` sobrevive a `docker compose down`. Para borrarlo también
+hay que usar `docker compose down -v`.
+
+### Ajustes opcionales del servicio
+
+| Variable | Default | Para qué |
+|---|---|---|
+| `RATE_LIMIT_MAX` | `5` | Consultas aceptadas por IP en la ventana |
+| `RATE_LIMIT_BURST` | `40` | Tope de peticiones por IP en la ventana |
+| `RATE_LIMIT_WINDOW` | `600` | Ventana, en segundos |
+| `MAX_BODY_BYTES` | `16384` | Tamaño máximo del formulario |
+
+## Publicación de las imágenes (GitHub Actions)
 
 `.github/workflows/docker-publish.yml` corre en cada push:
 
-1. **Construye** la imagen.
-2. **La prueba**: la levanta y verifica healthcheck, home, CSS, JS, logo y
-   cabeceras de seguridad. Si algo falla, no publica.
-3. **Publica** en `ghcr.io/pel-matiasvaldivia/jpsecutirysas` para
-   `linux/amd64` y `linux/arm64`.
+1. **Construye** las dos imágenes.
+2. **Levanta el stack completo** con `docker compose` y lo prueba de punta a
+   punta: healthcheck de ambos contenedores, home, CSS, JS, logo, cabeceras de
+   seguridad, y el formulario contra la api real (consulta válida guardada en
+   disco, consulta incompleta rechazada, campo trampa filtrado). Si algo falla,
+   no publica.
+3. **Publica** para `linux/amd64` y `linux/arm64`:
+   - sitio: `ghcr.io/pel-matiasvaldivia/jpsecutirysas`
+   - api: `ghcr.io/pel-matiasvaldivia/jpsecutirysas/api`
 
 En pull requests sólo construye y testea, no publica. No hace deploy a ningún
 servidor: el despliegue se hace a mano con el `docker-compose.yml`.

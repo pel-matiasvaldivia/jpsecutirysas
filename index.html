@@ -409,11 +409,23 @@
           <label for="f-mensaje">Cuéntenos sobre el objetivo</label>
           <textarea id="f-mensaje" name="mensaje" rows="4" placeholder="Tipo de objetivo, ubicación, horarios y necesidad estimada."></textarea>
         </div>
-        <button class="btn btn-primary btn-block" type="submit">Enviar consulta por WhatsApp</button>
+        <!-- Campo trampa: invisible para las personas, lo completan los bots -->
+        <div class="hp" aria-hidden="true">
+          <label for="f-sitio">No completar este campo</label>
+          <input id="f-sitio" name="sitio_web" type="text" tabindex="-1" autocomplete="off">
+        </div>
+
+        <button class="btn btn-primary btn-block" type="submit" id="formSubmit">Enviar consulta</button>
+
         <p class="form-alt">
-          ¿Prefiere correo? <a href="mailto:Jpseguridadsas@gmail.com?subject=Consulta%20de%20servicio%20-%20JP%20Security%20SAS">Escribir a Jpseguridadsas@gmail.com</a>
+          ¿Prefiere escribirnos directamente?
+          <a href="https://wa.me/5492616962342?text=Hola%20JP%20Security%20SAS%2C%20quisiera%20solicitar%20un%20presupuesto." target="_blank" rel="noopener">WhatsApp</a>
+          ·
+          <a href="mailto:Jpseguridadsas@gmail.com?subject=Consulta%20de%20servicio%20-%20JP%20Security%20SAS">Correo</a>
         </p>
-        <p class="form-error" id="formError" role="alert" hidden></p>
+
+        <p class="form-msg form-error" id="formError" role="alert" hidden></p>
+        <p class="form-msg form-ok" id="formOk" role="status" hidden></p>
       </form>
     </div>
   </section>

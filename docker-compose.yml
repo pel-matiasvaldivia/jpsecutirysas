@@ -1,18 +1,20 @@
 # Stack de JP Security SAS.
-# Toma la imagen publicada por GitHub Actions en el registry del repositorio
-# (GitHub Container Registry), no la construye localmente.
+# Toma las imágenes publicadas por GitHub Actions en el registry del
+# repositorio (GitHub Container Registry); no construye nada localmente.
 #
 #   docker compose pull
 #   docker compose up -d
 #
-# Variables (opcionales, se pueden poner en un archivo .env al lado):
-#   IMAGE      imagen completa a correr. Por defecto, la última de la rama principal.
-#   HTTP_PORT  puerto publicado en el host. Por defecto 80.
+# La configuración del correo va en un archivo .env al lado de este archivo
+# (ver .env.example).
 services:
+  # Sitio web + proxy del formulario hacia la api
   web:
-    image: ${IMAGE:-ghcr.io/pel-matiasvaldivia/jpsecutirysas:latest}
+    image: ${IMAGE_WEB:-ghcr.io/pel-matiasvaldivia/jpsecutirysas:latest}
     container_name: jpsecurity-web
     restart: unless-stopped
+    depends_on:
+      - api
     ports:
       - "${HTTP_PORT:-80}:80"
     healthcheck:
@@ -26,3 +28,37 @@ services:
       options:
         max-size: "10m"
         max-file: "3"
+
+  # Recibe el formulario, lo guarda en el volumen y lo manda por correo.
+  # No publica puertos: solo se llega a través de web.
+  api:
+    image: ${IMAGE_API:-ghcr.io/pel-matiasvaldivia/jpsecutirysas/api:latest}
+    container_name: jpsecurity-api
+    restart: unless-stopped
+    expose:
+      - "8080"
+    environment:
+      SMTP_HOST: ${SMTP_HOST:-}
+      SMTP_PORT: ${SMTP_PORT:-587}
+      SMTP_USER: ${SMTP_USER:-}
+      SMTP_PASSWORD: ${SMTP_PASSWORD:-}
+      SMTP_SECURITY: ${SMTP_SECURITY:-starttls}
+      MAIL_FROM: ${MAIL_FROM:-}
+      MAIL_TO: ${MAIL_TO:-Jpseguridadsas@gmail.com}
+    volumes:
+      - consultas:/data
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:8080/api/healthz"]
+      interval: 30s
+      timeout: 3s
+      retries: 3
+      start_period: 5s
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+volumes:
+  # Acá queda el historial de consultas (consultas.jsonl)
+  consultas:

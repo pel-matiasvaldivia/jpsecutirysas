@@ -1,4 +1,4 @@
-name: Build and publish container
+name: Build and publish containers
 
 on:
   push:
@@ -26,53 +26,105 @@ jobs:
       - name: Set up Buildx
         uses: docker/setup-buildx-action@v3
 
-      # Imagen local para el smoke test, antes de publicar nada
-      - name: Build image for testing
+      # Imágenes locales para el test de integración, antes de publicar nada
+      - name: Build web image for testing
         uses: docker/build-push-action@v6
         with:
           context: .
           load: true
-          tags: jpsecurity:test
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+          tags: jpsecurity-web:test
+          cache-from: type=gha,scope=web
+          cache-to: type=gha,mode=max,scope=web
 
-      - name: Smoke test
+      - name: Build api image for testing
+        uses: docker/build-push-action@v6
+        with:
+          context: ./api
+          load: true
+          tags: jpsecurity-api:test
+          cache-from: type=gha,scope=api
+          cache-to: type=gha,mode=max,scope=api
+
+      - name: Levantar el stack
+        env:
+          IMAGE_WEB: jpsecurity-web:test
+          IMAGE_API: jpsecurity-api:test
+          HTTP_PORT: '8080'
         run: |
           set -euo pipefail
-          docker run -d --name jpsec-test -p 8080:80 jpsecurity:test
+          docker compose up -d
 
-          for i in $(seq 1 20); do
-            if [ "$(docker inspect -f '{{.State.Health.Status}}' jpsec-test)" = "healthy" ]; then
-              break
+          for servicio in jpsecurity-web jpsecurity-api; do
+            estado=starting
+            for i in $(seq 1 30); do
+              estado=$(docker inspect -f '{{.State.Health.Status}}' "$servicio" 2>/dev/null || echo starting)
+              [ "$estado" = "healthy" ] && break
+              sleep 2
+            done
+            if [ "$estado" != "healthy" ]; then
+              echo "$servicio no quedó saludable (estado: $estado)"
+              docker compose logs
+              exit 1
             fi
-            sleep 2
           done
 
-          status=$(docker inspect -f '{{.State.Health.Status}}' jpsec-test)
-          if [ "$status" != "healthy" ]; then
-            echo "El contenedor no quedó saludable (estado: $status)"
-            docker logs jpsec-test
-            exit 1
-          fi
+      - name: Probar el sitio
+        run: |
+          set -euo pipefail
+          base=http://localhost:8080
 
-          curl -fsS http://localhost:8080/healthz
-          curl -fsS http://localhost:8080/ | grep -q "JP SECURITY SAS"
-          curl -fsS -o /dev/null http://localhost:8080/styles.css
-          curl -fsS -o /dev/null http://localhost:8080/script.js
-          curl -fsS -o /dev/null http://localhost:8080/assets/logo.png
+          curl -fsS "$base/healthz" > /dev/null
+          curl -fsS "$base/" | grep -q "JP SECURITY SAS"
+          curl -fsS -o /dev/null "$base/styles.css"
+          curl -fsS -o /dev/null "$base/script.js"
+          curl -fsS -o /dev/null "$base/assets/logo.png"
 
           # Las cabeceras de seguridad deben llegar también en las rutas
           # que definen su propio Cache-Control.
-          for path in / /styles.css /assets/logo.png; do
-            curl -fsSI "http://localhost:8080${path}" | grep -qi "x-content-type-options: nosniff" \
-              || { echo "Falta X-Content-Type-Options en ${path}"; exit 1; }
+          for ruta in / /styles.css /assets/logo.png; do
+            curl -fsSI "${base}${ruta}" | grep -qi "x-content-type-options: nosniff" \
+              || { echo "Falta X-Content-Type-Options en ${ruta}"; exit 1; }
           done
 
-          echo "Smoke test OK"
+          echo "Sitio OK"
 
-      - name: Clean up test container
+      - name: Probar el formulario de contacto
+        run: |
+          set -euo pipefail
+          base=http://localhost:8080
+
+          # La api se alcanza a través del proxy de nginx, como en producción
+          curl -fsS "$base/api/healthz" | grep -q '"ok": true'
+
+          # Consulta válida
+          respuesta=$(curl -fsS -X POST "$base/api/contacto" \
+            -H 'Content-Type: application/json' \
+            -d '{"nombre":"Juan Pérez","telefono":"261 555 1234","email":"juan@mail.com","servicio":"Seguridad física","mensaje":"Prueba automática"}')
+          echo "$respuesta" | grep -q '"ok": true' \
+            || { echo "La consulta válida no fue aceptada: $respuesta"; exit 1; }
+
+          # Tiene que haber quedado guardada en el volumen
+          docker compose exec -T api cat /data/consultas.jsonl | grep -q "Juan Pérez" \
+            || { echo "La consulta no se guardó en disco"; exit 1; }
+
+          # Falta el teléfono -> 400
+          codigo=$(curl -s -o /dev/null -w '%{http_code}' -X POST "$base/api/contacto" \
+            -H 'Content-Type: application/json' -d '{"nombre":"Ana"}')
+          [ "$codigo" = "400" ] || { echo "Se esperaba 400 y llegó $codigo"; exit 1; }
+
+          # Campo trampa completado -> se descarta sin guardar
+          curl -fsS -X POST "$base/api/contacto" -H 'Content-Type: application/json' \
+            -d '{"nombre":"Bot","telefono":"2615551234","sitio_web":"http://spam"}' > /dev/null
+          if docker compose exec -T api cat /data/consultas.jsonl | grep -q '"nombre": "Bot"'; then
+            echo "El campo trampa no filtró la consulta"
+            exit 1
+          fi
+
+          echo "Formulario OK"
+
+      - name: Apagar el stack
         if: always()
-        run: docker rm -f jpsec-test || true
+        run: docker compose down -v || true
 
       - name: Log in to GitHub Container Registry
         if: github.event_name != 'pull_request'
@@ -82,8 +134,8 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Docker metadata
-        id: meta
+      - name: Metadata del sitio
+        id: meta_web
         uses: docker/metadata-action@v5
         with:
           images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
@@ -95,27 +147,59 @@ jobs:
             type=sha,format=short
             type=raw,value=latest,enable={{is_default_branch}}
 
-      - name: Build and push
-        id: push
+      - name: Publicar el sitio
+        id: push_web
         if: github.event_name != 'pull_request'
         uses: docker/build-push-action@v6
         with:
           context: .
           platforms: linux/amd64,linux/arm64
           push: true
-          tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+          tags: ${{ steps.meta_web.outputs.tags }}
+          labels: ${{ steps.meta_web.outputs.labels }}
+          cache-from: type=gha,scope=web
+          cache-to: type=gha,mode=max,scope=web
+
+      - name: Metadata de la api
+        id: meta_api
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/api
+          tags: |
+            type=ref,event=branch
+            type=ref,event=pr
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=sha,format=short
+            type=raw,value=latest,enable={{is_default_branch}}
+
+      - name: Publicar la api
+        id: push_api
+        if: github.event_name != 'pull_request'
+        uses: docker/build-push-action@v6
+        with:
+          context: ./api
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: ${{ steps.meta_api.outputs.tags }}
+          labels: ${{ steps.meta_api.outputs.labels }}
+          cache-from: type=gha,scope=api
+          cache-to: type=gha,mode=max,scope=api
 
       - name: Summary
         if: github.event_name != 'pull_request'
         run: |
           {
-            echo "### Imagen publicada"
+            echo "### Imágenes publicadas"
             echo ""
+            echo "**Sitio**"
             echo '```'
-            echo "${{ steps.meta.outputs.tags }}"
-            echo "digest: ${{ steps.push.outputs.digest }}"
+            echo "${{ steps.meta_web.outputs.tags }}"
+            echo "digest: ${{ steps.push_web.outputs.digest }}"
+            echo '```'
+            echo "**API de contacto**"
+            echo '```'
+            echo "${{ steps.meta_api.outputs.tags }}"
+            echo "digest: ${{ steps.push_api.outputs.digest }}"
             echo '```'
           } >> "$GITHUB_STEP_SUMMARY"

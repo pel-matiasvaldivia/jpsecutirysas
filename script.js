@@ -49,52 +49,108 @@
     });
   }
 
-  /* --- Formulario: arma el mensaje y abre WhatsApp --- */
+  /* --- Formulario de contacto --- */
   var form = document.getElementById('contactForm');
   var errorBox = document.getElementById('formError');
+  var okBox = document.getElementById('formOk');
+  var submitBtn = document.getElementById('formSubmit');
+
+  function mostrar(caja, texto) {
+    if (!caja) return;
+    caja.textContent = texto;
+    caja.hidden = false;
+  }
+
+  function ocultarMensajes() {
+    if (errorBox) errorBox.hidden = true;
+    if (okBox) okBox.hidden = true;
+  }
+
+  function armarTexto(d) {
+    return 'Hola JP Security SAS, quisiera solicitar un presupuesto.\n\n' +
+      'Nombre: ' + d.nombre + '\n' +
+      'Teléfono: ' + d.telefono + '\n' +
+      (d.email ? 'Correo: ' + d.email + '\n' : '') +
+      'Servicio de interés: ' + d.servicio + '\n' +
+      (d.mensaje ? 'Detalle: ' + d.mensaje : '');
+  }
+
+  function abrirWhatsApp(d) {
+    window.open(
+      'https://wa.me/' + WHATSAPP + '?text=' + encodeURIComponent(armarTexto(d)),
+      '_blank',
+      'noopener'
+    );
+  }
 
   if (form) {
     form.addEventListener('submit', function (e) {
       e.preventDefault();
+      ocultarMensajes();
 
-      var nombre = form.nombre.value.trim();
-      var telefono = form.telefono.value.trim();
-      var email = form.email.value.trim();
-      var servicio = form.servicio.value;
-      var mensaje = form.mensaje.value.trim();
+      var datos = {
+        nombre: form.nombre.value.trim(),
+        telefono: form.telefono.value.trim(),
+        email: form.email.value.trim(),
+        servicio: form.servicio.value,
+        mensaje: form.mensaje.value.trim(),
+        sitio_web: form.sitio_web ? form.sitio_web.value : ''
+      };
 
       var faltan = [];
-      if (!nombre) faltan.push(form.nombre);
-      if (!telefono) faltan.push(form.telefono);
+      if (!datos.nombre) faltan.push(form.nombre);
+      if (!datos.telefono) faltan.push(form.telefono);
 
       form.nombre.removeAttribute('aria-invalid');
       form.telefono.removeAttribute('aria-invalid');
 
       if (faltan.length) {
         faltan.forEach(function (f) { f.setAttribute('aria-invalid', 'true'); });
-        if (errorBox) {
-          errorBox.textContent = 'Por favor complete su nombre y un teléfono de contacto.';
-          errorBox.hidden = false;
-        }
+        mostrar(errorBox, 'Por favor complete su nombre y un teléfono de contacto.');
         faltan[0].focus();
         return;
       }
 
-      if (errorBox) errorBox.hidden = true;
+      var textoOriginal = submitBtn ? submitBtn.textContent : '';
+      if (submitBtn) {
+        submitBtn.setAttribute('aria-busy', 'true');
+        submitBtn.textContent = 'Enviando…';
+      }
 
-      var texto =
-        'Hola JP Security SAS, quisiera solicitar un presupuesto.\n\n' +
-        'Nombre: ' + nombre + '\n' +
-        'Teléfono: ' + telefono + '\n' +
-        (email ? 'Correo: ' + email + '\n' : '') +
-        'Servicio de interés: ' + servicio + '\n' +
-        (mensaje ? 'Detalle: ' + mensaje : '');
+      function restaurar() {
+        if (submitBtn) {
+          submitBtn.removeAttribute('aria-busy');
+          submitBtn.textContent = textoOriginal;
+        }
+      }
 
-      window.open(
-        'https://wa.me/' + WHATSAPP + '?text=' + encodeURIComponent(texto),
-        '_blank',
-        'noopener'
-      );
+      fetch('/api/contacto', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(datos)
+      })
+        .then(function (res) {
+          return res.json().catch(function () { return {}; })
+            .then(function (cuerpo) { return { ok: res.ok, cuerpo: cuerpo }; });
+        })
+        .then(function (r) {
+          restaurar();
+          if (r.ok && r.cuerpo.ok) {
+            form.reset();
+            mostrar(okBox, '¡Gracias! Recibimos su consulta y nos comunicamos a la brevedad.');
+            return;
+          }
+          // El servidor rechazó la consulta y explicó por qué
+          mostrar(errorBox, r.cuerpo.error ||
+            'No pudimos enviar la consulta. Le abrimos WhatsApp para que no pierda el mensaje.');
+          if (!r.cuerpo.error) abrirWhatsApp(datos);
+        })
+        .catch(function () {
+          // Sin conexión con el servidor: que el contacto no se pierda
+          restaurar();
+          mostrar(errorBox, 'No pudimos conectar con el servidor. Le abrimos WhatsApp para enviar la consulta.');
+          abrirWhatsApp(datos);
+        });
     });
   }
 })();

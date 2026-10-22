@@ -367,7 +367,15 @@ p{margin:0 0 1.1em;}
 .field input[aria-invalid="true"]{border-color:var(--red);box-shadow:0 0 0 3px rgba(192,32,44,.12);}
 .form-alt{margin:.95rem 0 0;font-size:.88rem;text-align:center;color:var(--text-soft);}
 .form-alt a{color:var(--red);}
-.form-error{margin:.8rem 0 0;font-size:.88rem;color:var(--red);font-weight:500;}
+
+/* Campo trampa anti-bots: fuera de la vista pero no display:none,
+   que algunos bots detectan. */
+.hp{position:absolute;left:-9999px;width:1px;height:1px;overflow:hidden;}
+
+.form-msg{margin:.9rem 0 0;font-size:.9rem;font-weight:500;border-radius:var(--radius-sm);padding:.75rem .9rem;}
+.form-error{color:#8c1620;background:rgba(192,32,44,.09);border:1px solid rgba(192,32,44,.3);}
+.form-ok{color:#0f6b3d;background:rgba(21,163,94,.1);border:1px solid rgba(21,163,94,.35);}
+.btn[aria-busy="true"]{opacity:.7;pointer-events:none;}
 
 /* ---------------- Footer ---------------- */
 .site-footer{background:var(--navy-900);color:var(--steel-300);padding:3rem 0 1.5rem;}
