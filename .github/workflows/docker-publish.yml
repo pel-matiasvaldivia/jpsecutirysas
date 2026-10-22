@@ -7,6 +7,13 @@ on:
   pull_request:
   workflow_dispatch:
 
+# Una sola corrida por rama: si llega un push nuevo, el anterior se cancela.
+# Sin esto, dos corridas en paralelo compiten por el tag `latest` y, si la más
+# vieja termina última, deja publicado el commit anterior.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 env:
   REGISTRY: ghcr.io
   IMAGE_NAME: ${{ github.repository }}
