@@ -50,6 +50,11 @@ jobs:
           IMAGE_WEB: jpsecurity-web:test
           IMAGE_API: jpsecurity-api:test
           HTTP_PORT: '8080'
+          # Número de prueba, distinto al de producción: así se comprueba
+          # que el sitio toma el teléfono del entorno y no uno fijo.
+          CONTACT_PHONE_DISPLAY: '261 000 0000'
+          CONTACT_PHONE_LINK: '+542610000000'
+          CONTACT_WHATSAPP: '5492610000000'
         run: |
           set -euo pipefail
           docker compose up -d
@@ -111,6 +116,21 @@ jobs:
           # CSS y JS se revalidan siempre
           curl -fsSI "$base/script.js" | grep -qi "cache-control: no-cache" \
             || { echo "script.js no se está sirviendo con no-cache"; exit 1; }
+
+          # El teléfono tiene que venir del entorno, no estar fijo en la imagen
+          pagina=$(curl -fsS "$base/")
+          for esperado in '261 000 0000' 'tel:+542610000000' 'wa.me/5492610000000'; do
+            case "$pagina" in
+              *"$esperado"*) ;;
+              *) echo "No se aplicó el dato de contacto: $esperado"; exit 1;;
+            esac
+          done
+          curl -fsS "$base/script.js" | grep -q "5492610000000" \
+            || { echo "script.js no tomó el WhatsApp del entorno"; exit 1; }
+          if printf '%s' "$pagina" | grep -q "2616962342"; then
+            echo "Quedó el teléfono por defecto pese a configurar otro"
+            exit 1
+          fi
 
           echo "Sitio OK"
 

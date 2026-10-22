@@ -17,6 +17,12 @@ services:
       - api
     ports:
       - "${HTTP_PORT:-80}:80"
+    environment:
+      # Datos de contacto del sitio. Al cambiarlos, basta con
+      # `docker compose up -d` para que el sitio los tome.
+      CONTACT_PHONE_DISPLAY: "${CONTACT_PHONE_DISPLAY:-261 696 2342}"
+      CONTACT_PHONE_LINK: "${CONTACT_PHONE_LINK:-+542616962342}"
+      CONTACT_WHATSAPP: "${CONTACT_WHATSAPP:-5492616962342}"
     healthcheck:
       test: ["CMD", "wget", "-qO-", "http://127.0.0.1/healthz"]
       interval: 30s

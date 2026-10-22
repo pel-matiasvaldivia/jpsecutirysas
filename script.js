@@ -2,7 +2,7 @@
 (function () {
   'use strict';
 
-  var WHATSAPP = '5492616962342';
+  var WHATSAPP = '__CONTACT_WHATSAPP__';
 
   /* --- Año actual en el pie --- */
   var year = document.getElementById('year');

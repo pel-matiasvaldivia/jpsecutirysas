@@ -33,6 +33,7 @@ Sitio estático, sin dependencias ni proceso de build.
 Dockerfile                  Imagen nginx con el sitio
 docker/nginx.conf           gzip, cacheo, /healthz, proxy a /api/ y try_files
 docker/security-headers.conf Cabeceras de seguridad (incluidas en cada location)
+docker/40-configurar-sitio.sh Completa teléfono y sello de versión al arrancar
 api/server.py               Servicio de contacto (solo biblioteca estándar)
 api/Dockerfile              Imagen del servicio de contacto
 docker-compose.yml          Stack: sitio + api, con las imágenes de GHCR
@@ -96,13 +97,43 @@ docker build -t jpsecurity-api:dev ./api
 IMAGE_WEB=jpsecurity-web:dev IMAGE_API=jpsecurity-api:dev HTTP_PORT=8080 docker compose up -d
 ```
 
+## Cambiar el teléfono de contacto
+
+El número no está fijo en la imagen: el contenedor completa el sitio al
+arrancar con lo que diga el `.env`. En el `.env`, al lado del
+`docker-compose.yml`:
+
+```ini
+CONTACT_PHONE_DISPLAY=261 696 2342      # como se ve en pantalla
+CONTACT_PHONE_LINK=+542616962342        # enlace de llamada, formato internacional
+CONTACT_WHATSAPP=5492616962342          # WhatsApp: solo dígitos, con el 9
+```
+
+Y se aplica con:
+
+```bash
+docker compose up -d
+```
+
+Son tres variables porque el mismo número se escribe distinto en cada lugar:
+el visible lleva espacios, el de llamada lleva `+54` sin el 9, y el de WhatsApp
+lleva el 9 de celular argentino y ningún signo.
+
+Alcanza el `up -d`, sin `pull` ni imagen nueva: el sitio original viaja como
+plantilla dentro de la imagen y se regenera en cada arranque. Por eso también
+cambia el sello de los assets al cambiar el número, y los visitantes ven el
+teléfono nuevo de inmediato.
+
+El CI levanta el stack con un número de prueba y verifica que aparezca en la
+página, en el enlace de llamada, en el de WhatsApp y en el JavaScript.
+
 ## Caché de los assets
 
 `index.html` nunca se cachea, pero `styles.css` y `script.js` sí los guarda el
 navegador. Para que un cambio llegue al visitante sin que tenga que vaciar nada:
 
 - Las dos URLs llevan un sello con el hash de su contenido
-  (`script.js?v=a1b2c3d4e5`), que la imagen calcula al construirse. Si el
+  (`script.js?v=a1b2c3d4e5`), que el contenedor calcula al arrancar. Si el
   contenido cambia, cambia la URL, y el navegador la pide de nuevo porque es
   una dirección que nunca vio.
 - Además se sirven con `Cache-Control: no-cache`, así se revalidan siempre.
