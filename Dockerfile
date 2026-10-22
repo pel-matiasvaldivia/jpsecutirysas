@@ -14,6 +14,19 @@ COPY docker/security-headers.conf /etc/nginx/snippets/security-headers.conf
 COPY index.html styles.css script.js /usr/share/nginx/html/
 COPY assets/ /usr/share/nginx/html/assets/
 
+# Sella las URLs de styles.css y script.js con un hash de su contenido.
+# El index.html nunca se cachea, así que cada visitante recibe el HTML nuevo;
+# como apunta a una URL que ningún navegador tiene guardada, el CSS y el JS
+# viejos quedan descartados al instante, sin esperar a que venza su caché.
+RUN set -eu; \
+    version="$(cat /usr/share/nginx/html/styles.css /usr/share/nginx/html/script.js \
+               | sha256sum | cut -c1-10)"; \
+    sed -i "s/__ASSET_VERSION__/$version/g" /usr/share/nginx/html/index.html; \
+    if grep -q "__ASSET_VERSION__" /usr/share/nginx/html/index.html; then \
+      echo "No se reemplazó la versión de los assets"; exit 1; \
+    fi; \
+    echo "Versión de assets: $version"
+
 EXPOSE 80
 
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \

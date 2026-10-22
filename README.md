@@ -96,6 +96,25 @@ docker build -t jpsecurity-api:dev ./api
 IMAGE_WEB=jpsecurity-web:dev IMAGE_API=jpsecurity-api:dev HTTP_PORT=8080 docker compose up -d
 ```
 
+## Caché de los assets
+
+`index.html` nunca se cachea, pero `styles.css` y `script.js` sí los guarda el
+navegador. Para que un cambio llegue al visitante sin que tenga que vaciar nada:
+
+- Las dos URLs llevan un sello con el hash de su contenido
+  (`script.js?v=a1b2c3d4e5`), que la imagen calcula al construirse. Si el
+  contenido cambia, cambia la URL, y el navegador la pide de nuevo porque es
+  una dirección que nunca vio.
+- Además se sirven con `Cache-Control: no-cache`, así se revalidan siempre.
+
+Las dos cosas juntas por un motivo concreto: una versión anterior servía estos
+archivos con `max-age` de 7 días, y mientras ese plazo no vence el navegador ni
+siquiera consulta al servidor, de modo que un cambio de cabecera no alcanza para
+desalojar lo que ya está guardado. El sello en la URL sí.
+
+El CI verifica en cada push que el HTML servido traiga el sello reemplazado y
+que los assets respondan con él.
+
 ## Formulario de contacto
 
 Cuando alguien completa el formulario del sitio, el servicio `api`:

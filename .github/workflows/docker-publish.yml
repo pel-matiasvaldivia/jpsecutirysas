@@ -86,6 +86,32 @@ jobs:
               || { echo "Falta X-Content-Type-Options en ${ruta}"; exit 1; }
           done
 
+          # El HTML servido tiene que traer la versión sellada, no el marcador
+          if curl -fsS "$base/" | grep -q "__ASSET_VERSION__"; then
+            echo "El HTML quedó con el marcador de versión sin reemplazar"
+            exit 1
+          fi
+
+          version=$(curl -fsS "$base/" | sed -n 's/.*script\.js?v=\([a-f0-9]\{10\}\).*/\1/p' | head -1)
+          if [ -z "$version" ]; then
+            echo "No se encontró la versión de los assets en el HTML"
+            exit 1
+          fi
+          curl -fsS -o /dev/null "$base/styles.css?v=$version"
+          curl -fsS -o /dev/null "$base/script.js?v=$version"
+          echo "Versión de assets: $version"
+
+          # El envío del formulario no debe abrir WhatsApp: el único modo de
+          # llegar a WhatsApp es hacer clic en un enlace.
+          if curl -fsS "$base/script.js" | grep -q "window.open"; then
+            echo "script.js abre ventanas por su cuenta"
+            exit 1
+          fi
+
+          # CSS y JS se revalidan siempre
+          curl -fsSI "$base/script.js" | grep -qi "cache-control: no-cache" \
+            || { echo "script.js no se está sirviendo con no-cache"; exit 1; }
+
           echo "Sitio OK"
 
       - name: Probar el formulario de contacto
