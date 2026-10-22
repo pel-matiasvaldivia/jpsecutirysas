@@ -113,8 +113,7 @@
         telefono: form.telefono.value.trim(),
         email: form.email.value.trim(),
         servicio: form.servicio.value,
-        mensaje: form.mensaje.value.trim(),
-        sitio_web: form.sitio_web ? form.sitio_web.value : ''
+        mensaje: form.mensaje.value.trim()
       };
 
       var faltan = [];

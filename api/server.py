@@ -266,8 +266,8 @@ class Handler(BaseHTTPRequestHandler):
             self.responder(429, {"ok": False, "error": "Demasiadas peticiones."})
             return
 
-        # Campo trampa: los visitantes no lo ven, los bots sí lo completan.
-        # Se responde OK para no darles pistas.
+        # El formulario del sitio ya no manda este campo: si viene completado,
+        # es un bot envenenando la casilla. Se responde OK para no darle pistas.
         if limpiar(datos.get("sitio_web", ""), 50):
             log(f"Descartado por campo trampa ({self.client_ip()})")
             self.responder(200, {"ok": True})

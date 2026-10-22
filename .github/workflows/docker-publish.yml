@@ -112,11 +112,11 @@ jobs:
             -H 'Content-Type: application/json' -d '{"nombre":"Ana"}')
           [ "$codigo" = "400" ] || { echo "Se esperaba 400 y llegó $codigo"; exit 1; }
 
-          # Campo trampa completado -> se descarta sin guardar
+          # Envío de bot (campo que el formulario real no manda) -> se descarta
           curl -fsS -X POST "$base/api/contacto" -H 'Content-Type: application/json' \
             -d '{"nombre":"Bot","telefono":"2615551234","sitio_web":"http://spam"}' > /dev/null
           if docker compose exec -T api cat /data/consultas.jsonl | grep -q '"nombre": "Bot"'; then
-            echo "El campo trampa no filtró la consulta"
+            echo "No se filtró el envío de bot"
             exit 1
           fi
 

@@ -368,10 +368,6 @@ p{margin:0 0 1.1em;}
 .form-alt{margin:.95rem 0 0;font-size:.88rem;text-align:center;color:var(--text-soft);}
 .form-alt a{color:var(--red);}
 
-/* Campo trampa anti-bots: fuera de la vista pero no display:none,
-   que algunos bots detectan. */
-.hp{position:absolute;left:-9999px;width:1px;height:1px;overflow:hidden;}
-
 .form-msg{margin:.9rem 0 0;font-size:.9rem;font-weight:500;border-radius:var(--radius-sm);padding:.75rem .9rem;}
 .form-error{color:#8c1620;background:rgba(192,32,44,.09);border:1px solid rgba(192,32,44,.3);}
 .form-ok{color:#0f6b3d;background:rgba(21,163,94,.1);border:1px solid rgba(21,163,94,.35);}

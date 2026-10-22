@@ -100,8 +100,8 @@ IMAGE_WEB=jpsecurity-web:dev IMAGE_API=jpsecurity-api:dev HTTP_PORT=8080 docker 
 
 Cuando alguien completa el formulario del sitio, el servicio `api`:
 
-1. Valida los datos y descarta los envíos de bots (campo trampa oculto y un
-   tope de consultas por IP).
+1. Valida los datos y limita las consultas por IP, para que un bot no inunde
+   la casilla.
 2. **Guarda la consulta** en `consultas.jsonl`, dentro del volumen `consultas`.
 3. **Envía un correo** a `MAIL_TO` con los datos, poniendo como `Reply-To` el
    correo del interesado: responder desde Gmail le contesta directo a él.
@@ -172,7 +172,7 @@ hay que usar `docker compose down -v`.
 2. **Levanta el stack completo** con `docker compose` y lo prueba de punta a
    punta: healthcheck de ambos contenedores, home, CSS, JS, logo, cabeceras de
    seguridad, y el formulario contra la api real (consulta válida guardada en
-   disco, consulta incompleta rechazada, campo trampa filtrado). Si algo falla,
+   disco, consulta incompleta rechazada). Si algo falla,
    no publica.
 3. **Publica** para `linux/amd64` y `linux/arm64`:
    - sitio: `ghcr.io/pel-matiasvaldivia/jpsecutirysas`
